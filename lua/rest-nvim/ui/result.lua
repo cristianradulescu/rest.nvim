@@ -117,24 +117,50 @@ local panes = {
             end
             syntax_highlight(self.bufnr, "jproperties")
             local lines = {}
-            logger.debug(data.response.headers)
-            local headers = vim.iter(data.response.headers):totable()
-            table.sort(headers, function(b, a)
+
+            -- Request headers
+            logger.debug(data.request.headers)
+            local req_headers = vim.iter(data.request.headers):totable()
+            table.sort(req_headers, function(b, a)
                 return a[1] > b[1]
             end)
-            logger.debug(headers)
-            for _, header in ipairs(headers) do
-                if header[1] ~= "set-cookie" then
+            logger.debug(req_headers)
+            table.insert(lines, "# @_REQUEST")
+            for _, req_header in ipairs(req_headers) do
+                vim.list_extend(
+                    lines,
+                    vim.iter(req_header[2])
+                        :map(function(value)
+                            return req_header[1] .. ": " .. value
+                        end)
+                        :totable()
+                )
+            end
+            table.insert(lines, "# @_END")
+            set_lines(self.bufnr, lines)
+
+            -- Response headers
+            logger.debug(data.response.headers)
+            local res_headers = vim.iter(data.response.headers):totable()
+            table.sort(res_headers, function(b, a)
+                return a[1] > b[1]
+            end)
+            logger.debug(res_headers)
+            table.insert(lines, "")
+            table.insert(lines, "# @_RESPONSE")
+            for _, res_header in ipairs(res_headers) do
+                if res_header[1] ~= "set-cookie" then
                     vim.list_extend(
                         lines,
-                        vim.iter(header[2])
+                        vim.iter(res_header[2])
                             :map(function(value)
-                                return header[1] .. ": " .. value
+                                return res_header[1] .. ": " .. value
                             end)
                             :totable()
                     )
                 end
             end
+            table.insert(lines, "# @_END")
             set_lines(self.bufnr, lines)
         end,
     },
